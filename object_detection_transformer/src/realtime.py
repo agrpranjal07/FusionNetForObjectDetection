@@ -83,8 +83,13 @@ def main() -> None:
     config.label_map = config.labels
     model = load_model(config)
 
-    source = config.video if config.video is not None else config.camera
-    cap = cv2.VideoCapture(str(source))
+    if config.video is not None:
+        source = str(config.video)
+    else:
+        # Use integer camera index directly to avoid OpenCV treating it as a filename
+        source = config.camera if config.camera is not None else 0
+
+    cap = cv2.VideoCapture(source)
     if not cap.isOpened():
         raise RuntimeError(f"Unable to open video source: {source}")
 

@@ -1,6 +1,6 @@
 # Tensor-Valued Object Detection Transformer
 
-This folder contains a runnable skeleton for an object-detection transformer that ingests YOLO-style labels. It provides:
+This folder contains a runnable skeleton for an object-detection transformer that ingests YOLO-style labels. It is **Windows-first** and ships PowerShell helpers only. It provides:
 
 - A dataset loader that reads images plus `*.txt` YOLO labels.
 - An encoder that flattens images to tensors and feeds a multi-head attention stack.
@@ -11,7 +11,7 @@ The code is deliberately lightweight so it can run on CPU for smoke tests while 
 
 ## Project Layout
 - `src/` contains the transformer model, dataset utilities, and training/inference entrypoints.
-- `scripts/` contains PowerShell helpers for Windows.
+- `scripts/` contains PowerShell helpers for Windows (use them in PowerShell or PowerShell Core).
 - `requirements.txt` lists runtime dependencies.
 
 ## Quickstart (Windows PowerShell)
@@ -21,19 +21,19 @@ cd object_detection_transformer
 ./.venv/Scripts/Activate.ps1
 
 # Train on a YOLO-formatted dataset (images/*.jpg, labels/*.txt)
-./scripts/train.ps1 /path/to/dataset --epochs 1 --batch-size 4 --num-classes 80 --num-queries 25
+./scripts/train.ps1 C:\\data\\yolo --epochs 1 --batch-size 4 --num-classes 80 --num-queries 25
 
 # Run single-image inference
-python -m src.inference checkpoints/det_transformer.pt /path/to/test.jpg --labels person car dog
+python -m src.inference checkpoints/det_transformer.pt C:\\data\\yolo\\images\\sample.jpg --labels person car dog
 
 # Stream real-time webcam/video inference with OpenCV overlay
 ./scripts/realtime.ps1 checkpoints/det_transformer.pt --labels person car dog --camera 0 --confidence 0.4
 ```
 
-The dataset folder should contain `images/*.jpg` and `labels/*.txt` files in YOLO format (`class x_center y_center width height`).
+The dataset folder should contain `images/*.jpg` and `labels/*.txt` files in YOLO format (`class x_center y_center width height`). Ensure the two subfolders contain the same basenames (e.g., `images/cat.jpg` pairs with `labels/cat.txt`).
 
 ## Training Guide
-- **Inputs**: place resized training images under `dataset/images/` and matching YOLO label files under `dataset/labels/`.
+- **Inputs**: place resized training images under `dataset/images/` and matching YOLO label files under `dataset/labels/` (filenames must match between the two folders).
 - **Command**: `./scripts/train.ps1 dataset --epochs 50 --batch-size 16 --num-classes <classes> --num-queries <queries>`.
 - **Outputs**: checkpoints are written to `checkpoints/det_transformer.pt` along with basic optimizer state for resuming.
 - **GPU use**: add `--device cuda` if a CUDA-capable GPU and drivers are present.
@@ -48,3 +48,4 @@ The dataset folder should contain `images/*.jpg` and `labels/*.txt` files in YOL
 - The `src.realtime` entrypoint opens a webcam or video file, overlays bounding boxes, and prints lightweight telemetry once per second.
 - Use `--no-window` for headless or remote deployments and pipe the logs to your monitoring system.
 - Tune `--image-size` and `--num-queries` to balance accuracy vs. latency for 60 FPS pipelines.
+- Cameras are opened with their integer index (0 by default) to avoid OpenCV treating them as filenames; pass `--video <path>` to stream a file instead.
