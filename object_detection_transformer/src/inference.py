@@ -10,6 +10,7 @@ from torchvision import transforms
 
 from .config import InferenceConfig
 from .model import DetectionTransformer
+from .pipeline import FusionNetPipeline
 
 
 def load_model(config: InferenceConfig) -> DetectionTransformer:
@@ -21,7 +22,6 @@ def load_model(config: InferenceConfig) -> DetectionTransformer:
         d_model=model_config.get("d_model", 128),
         nhead=model_config.get("nhead", 4),
         num_encoder_layers=model_config.get("num_encoder_layers", 4),
-        num_decoder_layers=model_config.get("num_decoder_layers", 4),
         dim_feedforward=model_config.get("dim_feedforward", 256),
         dropout=model_config.get("dropout", 0.1),
     )
@@ -41,22 +41,10 @@ def prepare_image(image_path: Path, image_size: int) -> torch.Tensor:
 
 
 def run_inference(model: DetectionTransformer, image: torch.Tensor, label_map: List[str]):
+    pipeline = FusionNetPipeline(model=model, label_map=label_map)
     with torch.no_grad():
-        outputs = model(image)
-    class_logits = outputs["class_logits"].softmax(dim=-1)
-    box_preds = outputs["boxes"]
-
-    confidences, classes = class_logits.max(dim=-1)
-    decoded = []
-    for score, cls_idx, box in zip(confidences[0], classes[0], box_preds[0]):
-        decoded.append(
-            {
-                "score": float(score.item()),
-                "class": label_map[int(cls_idx.item())],
-                "box_xywh": box.tolist(),
-            }
-        )
-    return decoded
+        outputs = pipeline.forward(image)
+    return outputs
 
 
 def parse_args() -> InferenceConfig:
@@ -85,9 +73,10 @@ def main() -> None:
     image_tensor = prepare_image(config.image, config.image_size)
     image_tensor = image_tensor.to(config.device)
 
-    predictions = run_inference(model, image_tensor, config.label_map)
-    for pred in predictions:
+    outputs = run_inference(model, image_tensor, config.label_map)
+    for pred in outputs["detections"]:
         print(pred)
+    print("GNN metrics:", outputs["metrics"])
 
 
 if __name__ == "__main__":

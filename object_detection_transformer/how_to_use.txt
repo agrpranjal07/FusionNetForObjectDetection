@@ -113,7 +113,21 @@ Performance tips:
 - Lower `--image-size` (e.g., 416) and `--num-queries` (e.g., 15) to improve FPS.
 - Prefer GPU (`--device cuda`) for 60 FPS targets; CPU mode is best for functional tests.
 
-9) Codespaces quickstart
+9) Streamlit dashboard (FusionNet)
+---------------------------------
+- Launch the dashboard to visualize class-wise counts, RMS velocity metrics from the GNN, and explainability JSONL artifacts:
+  - Linux/macOS: `./scripts/dashboard.sh`
+  - Windows: `./scripts/dashboard.ps1 -Headless`
+- The dashboard reads from `artifacts/metrics.jsonl` (written by inference/realtime), `artifacts/attention.jsonl` (if you log attention maps), and optionally `artifacts/live.mp4` if you record frames.
+- Use the sidebar inputs to point the dashboard to alternative artifact paths when running in Codespaces or Kaggle outputs.
+
+10) Kaggle TPU/GPU notebook (FusionNet)
+--------------------------------------
+- Copy `kaggle_fusionnet_notebook.py` into a new Kaggle notebook. Set `API_ENDPOINT` and `API_TOKEN` to sync checkpoints to your Codespace/backend via your own API.
+- The notebook keeps the encoder-only transformer + memory fusion and trains with YOLO data stored in `/kaggle/input/...`.
+- After training, download the saved `fusionnet_epoch*.pt` files or use the provided sync stub to push them back to GitHub.
+
+11) Codespaces quickstart
 ------------------------
 1. Open a terminal in the Codespace and run:
    ```bash

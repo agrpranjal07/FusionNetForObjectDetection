@@ -16,6 +16,8 @@ The code is deliberately lightweight so it can run on CPU for smoke tests while 
 - `use.md` provides a Codespaces walkthrough (works for other Linux hosts too).
 - `how_to_use.txt` is a detailed step-by-step manual for training, testing, inference, and real-time runs on Windows and Linux.
 - `technical_report.txt` is an in-depth architectural report covering data flow, transformer design, and deployment notes.
+- `kaggle_fusionnet_notebook.py` is a notebook-style script to copy into Kaggle for TPU/GPU training with API placeholders.
+- `scripts/dashboard.(sh|ps1)` launches the Streamlit dashboard for metrics, explainability, and live video.
 
 ## Quickstart (Windows PowerShell)
 ```pwsh
@@ -87,3 +89,9 @@ The dataset folder should contain `images/*.jpg` and `labels/*.txt` files in YOL
 - Use `--no-window` for headless or remote deployments and pipe the logs to your monitoring system.
 - Tune `--image-size` and `--num-queries` to balance accuracy vs. latency for 60 FPS pipelines.
 - Cameras are opened with their integer index (0 by default) to avoid OpenCV treating them as filenames; pass `--video <path>` to stream a file instead.
+
+## FusionNet extras (encoder-only + Vision RAG + GNN dashboard)
+- The detection backbone is now encoder-only: YOLO-style patches plus learned queries are passed through the encoder; detection tokens are fused with a `KnowledgeGraphMemory` (Vision RAG style) before class/box heads.
+- A lightweight GNN (`src.gnn.py`) aggregates detections into RMS velocity and count metrics for every frame. These metrics are emitted during inference/real-time runs and logged under `artifacts/metrics.jsonl`.
+- Launch the Streamlit dashboard to visualize detections, metrics, and explainability JSONL files: `./scripts/dashboard.sh` (Linux/macOS) or `./scripts/dashboard.ps1` (Windows). The dashboard reads `artifacts/live.mp4` if you save video buffers.
+- For TPU training on Kaggle, copy `kaggle_fusionnet_notebook.py` into a notebook, fill `API_ENDPOINT`/`API_TOKEN`, and sync checkpoints back to the Codespaces backend.

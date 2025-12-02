@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -52,9 +52,11 @@ class ImageEncoder(nn.Module):
         self.input_proj = nn.Linear(token_size, d_model)
         self.positional = nn.Parameter(torch.zeros(1, 4096, d_model))
 
-    def forward(self, images: Tensor) -> Tensor:
+    def forward(self, images: Tensor, query_tokens: Optional[Tensor] = None) -> Tuple[Tensor, int]:
         tokens = patchify(images, token_size=self.token_size)
         projected = self.input_proj(tokens)
+        if query_tokens is not None:
+            projected = torch.cat([projected, query_tokens], dim=1)
         max_len = self.positional.shape[1]
         if projected.size(1) > max_len:
             raise ValueError(
@@ -62,7 +64,7 @@ class ImageEncoder(nn.Module):
             )
         positional = self.positional[:, : projected.size(1), :]
         encoded = self.encoder(projected + positional)
-        return encoded
+        return encoded, tokens.size(1)
 
     def export_attention_maps(self) -> Tuple[Tensor, ...]:
         maps = []
