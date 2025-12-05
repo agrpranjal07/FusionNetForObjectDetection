@@ -86,16 +86,31 @@ class ImageEncoder(nn.Module):
         self.positional = nn.Parameter(torch.zeros(1, 4096, d_model))
         self._attn_cache: list[Tensor] = []
 
+    def _ensure_positional_capacity(self, required_len: int) -> None:
+        """Expand the learnable positional tensor if a longer sequence is needed."""
+
+        current_len = self.positional.shape[1]
+        if required_len <= current_len:
+            return
+
+        # Grow geometrically to reduce reallocations for larger inputs (e.g., 256x256).
+        new_len = max(required_len, current_len * 2)
+        expanded = torch.zeros(
+            1,
+            new_len,
+            self.positional.shape[2],
+            device=self.positional.device,
+            dtype=self.positional.dtype,
+        )
+        expanded[:, :current_len] = self.positional.data
+        self.positional = nn.Parameter(expanded)
+
     def forward(self, images: Tensor, query_tokens: Optional[Tensor] = None) -> Tuple[Tensor, int]:
         tokens = patchify(images, token_size=self.token_size)
         projected = self.input_proj(tokens)
         if query_tokens is not None:
             projected = torch.cat([projected, query_tokens], dim=1)
-        max_len = self.positional.shape[1]
-        if projected.size(1) > max_len:
-            raise ValueError(
-                f"Sequence length {projected.size(1)} exceeds positional capacity {max_len}."
-            )
+        self._ensure_positional_capacity(projected.size(1))
         positional = self.positional[:, : projected.size(1), :]
         x = projected + positional
         self._attn_cache.clear()
